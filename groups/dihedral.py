@@ -9,10 +9,18 @@ from algebra import Group, FiniteGroup, GroupElement
 # RS = SR^(-1)
 
 class DihedralElement(GroupElement):
-    def __init__(self, r=0, s=False, n=1):
+    def __init__(self, r=0, s=False, n=1, r_gen=None, s_gen=None):
         self.r = r % n
         self.s = s
         self.n = n
+        self.r_gen = r_gen
+        self.s_gen = s_gen
+
+        if self.s:
+            self.word = [self.s_gen] + [self.r_gen]*self.r
+        else:
+            self.word = [self.r_gen]*self.r
+
         
 
     def __repr__(self):
@@ -34,52 +42,53 @@ class DihedralGroup(FiniteGroup):
     def __init__(self, n):
         self.n = n
         elems = []
-        for k in range(self.n):
-            elems.append(DihedralElement(k, False, self.n))
-        for k in range(self.n):
-            elems.append(DihedralElement(k, True, self.n))
-        self._elements = elems
+        self.r_gen = DihedralElement(1, False, n)
+        self.s_gen = DihedralElement(0, True, n)
 
+        for k in range(self.n):
+            elems.append(DihedralElement(k, False, self.n, r_gen=self.r_gen, s_gen=self.s_gen))
+        for k in range(self.n):
+            elems.append(DihedralElement(k, True, self.n, r_gen=self.r_gen, s_gen=self.s_gen))
+        self._elements = elems
     
     # 生成元
+    @property
     def generators(self):
-        r = DihedralElement(1, False, self.n)
-        s = DihedralElement(0, True, self.n)
-        return [r, s]
+        return [self.r_gen, self.s_gen]
     
     # 群演算定義
     def multiply(self, a, b):
         n = self.n
         # (R^a)(R^b) = R^(a+b)
         if not a.s and not b.s:
-            return DihedralElement(a.r + b.r, False, n)
+            return DihedralElement(a.r + b.r, False, n, r_gen=self.r_gen, s_gen=self.s_gen)
     
         #(R^a)(S R^b) = S R^(b-a)
         if not a.s and b.s:
-            return DihedralElement(b.r - a.r, True, n)
+            return DihedralElement(b.r - a.r, True, n, r_gen=self.r_gen, s_gen=self.s_gen)
         
         #(S R^a)(R^b) = S R^(a+b)
         if a.s and not b.s:
-            return DihedralElement(a.r + b.r, True, n)
+            return DihedralElement(a.r + b.r, True, n, r_gen=self.r_gen, s_gen=self.s_gen)
         
         #(S R^a)(S R^b) = R^(b-a)
         if a.s and b.s:
-            return DihedralElement(b.r -a.r, False, n)
+            return DihedralElement(b.r -a.r, False, n, r_gen=self.r_gen, s_gen=self.s_gen)
 
     # 単位元
+    @property
     def identity(self):
-        return DihedralElement(0, False, self.n)
+        return DihedralElement(0, False, self.n, r_gen=self.r_gen, s_gen=self.s_gen)
     
 
     # 逆元
     def inverse(self, a):
         n = self.n
         if not a.s:
-            return DihedralElement(-a.r, False, n)
+            return DihedralElement(-a.r, False, n, r_gen=self.r_gen, s_gen=self.s_gen)
         else:
-            return DihedralElement(a.r, True, n)
+            return DihedralElement(a.r, True, n, r_gen=self.r_gen, s_gen=self.s_gen)
     
-    # 元書き下し
     @property
     def elements(self):
         return self._elements
@@ -89,32 +98,6 @@ class DihedralGroup(FiniteGroup):
     def conjugate(self, g, x):
         return self.multiply(self.multiply(g, x), self.inverse(g))
     
-    # 中心
-    def center(self):
-        Z = []
-        for z in self.elements:
-            if all(self.multiply(z, g) == self.multiply(g, z) for g in self.elements):
-                Z.append(z)
-            return Z
-        
-    # 内部自己同型
-    def inner_automorphism(self, g):
-        return {x: self.conjugate(g, x) for x in self.elements}
-        
-    # Inn(G)の計算
-    def compute_inn_group(self):
-        """Return list of distinct inner automorphisms."""
-        autos = []
-        reps = []  # representative elements
-
-        for g in self.elements:
-            phi_g = self.inner_automorphism(g)
-            if all(phi_g != aut for aut in autos):
-                autos.append(phi_g)
-                reps.append(g)
-
-        return autos, reps
-
     # Aut(G)の計算
     def compute_aut_group(self):
         autos = []

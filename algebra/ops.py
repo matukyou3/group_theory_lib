@@ -23,6 +23,6 @@ def center(G):
 
 # 交換子部分群[G, G]
 def commutator_subgroup(G):
-    elems = G.elements()
+    elems = G.elements
     comms = {commutator(G, a, b) for a, b in product(elems, repeat=2)}
     return comms

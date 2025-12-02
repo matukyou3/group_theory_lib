@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 
 class GroupElement(ABC):
+    def __init__(self, word=None):
+        self.word = word or []
     @abstractmethod
     def __eq__(self, other):
         pass
