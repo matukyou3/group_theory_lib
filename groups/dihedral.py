@@ -1,5 +1,6 @@
 from itertools import product
 import math
+from algebra import Group
 
 # s：鏡映
 # r：回転
@@ -7,7 +8,7 @@ import math
 # S^2 = e
 # RS = SR^(-1)
 
-class DiherdralElement:
+class DihedralElement:
     def __init__(self, r=0, s=False, n=1):
         self.r = r % n
         self.s = s
@@ -19,7 +20,7 @@ class DiherdralElement:
     
     def __eq__(self, other):
         return (
-            isinstance(other, DiherdralElement) and
+            isinstance(other, DihedralElement) and
             self.r == other.r and
             self.s == other.s and
             self.n == other.n
@@ -28,48 +29,61 @@ class DiherdralElement:
     def __hash__(self):
         return hash((self.r, self.s, self.n))
     
-class DiherdralGroup:
+class DihedralGroup(Group):
     # 群構造定義
     def __init__(self, n):
         self.n = n
 
         # 元書き下し
-        self.elements = []
-        for k in range(n):
-            self.elements.append(DiherdralElement(k, False, n))
-        for k in range(n):
-            self.elements.append(DiherdralElement(k, True, n))
-
-        # 単位元
-        self.e = DiherdralElement(0, False, n)
-
+    
+    # 生成元
+    def generators(self):
+        r = DihedralElement(1, False, self.n)
+        s = DihedralElement(0, True, self.n)
+        return [r, s]
+    
     # 群演算定義
     def multiply(self, a, b):
         n = self.n
         # (R^a)(R^b) = R^(a+b)
         if not a.s and not b.s:
-            return DiherdralElement(a.r + b.r, False, n)
+            return DihedralElement(a.r + b.r, False, n)
     
         #(R^a)(S R^b) = S R^(b-a)
         if not a.s and b.s:
-            return DiherdralElement(b.r - a.r, True, n)
+            return DihedralElement(b.r - a.r, True, n)
         
         #(S R^a)(R^b) = S R^(a+b)
         if a.s and not b.s:
-            return DiherdralElement(a.r + b.r, True, n)
+            return DihedralElement(a.r + b.r, True, n)
         
         #(S R^a)(S R^b) = R^(b-a)
         if a.s and b.s:
-            return DiherdralElement(b.r -a.r, False, n)
+            return DihedralElement(b.r -a.r, False, n)
+
+    # 単位元
+    def identity(self):
+        return DihedralElement(0, False, self.n)
+    
 
     # 逆元
     def inverse(self, a):
         n = self.n
         if not a.s:
-            return DiherdralElement(-a.r, False, n)
+            return DihedralElement(-a.r, False, n)
         else:
-            return DiherdralElement(a.r, True, n)
+            return DihedralElement(a.r, True, n)
     
+    # 元書き下し
+    def elements(self):
+        elements = []
+        for k in range(self.n):
+            elements.append(DihedralElement(k, False, self.n))
+        for k in range(self.n):
+            elements.append(DihedralElement(k, True, self.n))
+        return elements
+
+
     # 共役 φ_g(x) → g x g^(-1)
     def conjugate(self, g, x):
         return self.multiply(self.multiply(g, x), self.inverse(g))
@@ -118,8 +132,6 @@ class DiherdralGroup:
             else:
                 refl.append(elem)
 
-        print(rot)
-        print(refl)
         # 回転と鏡映のペアの写像の像を計算する
         for img_r, img_s in product(rot, refl):
             
@@ -160,10 +172,3 @@ class DiherdralGroup:
                 reps.append((img_r, img_s))
         
         return autos, reps
-
-
-D=DiherdralGroup(n=5)
-autos, reps = D.compute_aut_group()
-
-print(len(autos))
-print(reps)
