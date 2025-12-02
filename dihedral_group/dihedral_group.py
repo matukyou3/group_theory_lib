@@ -1,3 +1,6 @@
+from itertools import product
+import math
+
 # s：鏡映
 # r：回転
 # R^n = e
@@ -17,9 +20,9 @@ class DiherdralElement:
     def __eq__(self, other):
         return (
             isinstance(other, DiherdralElement) and
-            self.n == other.n and
+            self.r == other.r and
             self.s == other.s and
-            self.r == other.r
+            self.n == other.n
         )
     
     def __hash__(self):
@@ -97,9 +100,70 @@ class DiherdralGroup:
 
         return autos, reps
 
+    # Aut(G)の計算
+    def compute_aut_group(self):
+        autos = []
+        reps = []
 
-D=DiherdralGroup(n=6)
-print(D.elements)
-autos, reps = D.compute_inn_group()
+        elems = self.elements
+        rot = []
+        refl = []
+        for elem in elems:
+            # 回転の場合
+            if not elem.s:
+                if math.gcd(elem.r, self.n) == 1:
+                    rot.append(elem)
+            
+            # 鏡映を含む場合
+            else:
+                refl.append(elem)
+
+        print(rot)
+        print(refl)
+        # 回転と鏡映のペアの写像の像を計算する
+        for img_r, img_s in product(rot, refl):
+            
+            phi = {}
+
+            for x in self.elements:
+                if not x.s:
+                    # x = r^kのケース
+                    # 鏡映なし
+                    out = self.e
+                    power = self.e
+                    for _ in range(x.r):
+                        power = self.multiply(power, img_r)
+                    phi[x] = self.multiply(out, power)
+
+                else:
+                    out = img_s
+                    power = self.e
+                    for _ in range(x.r):
+                        power = self.multiply(power, img_r)
+                    phi[x] = self.multiply(out, power)
+
+            if len(set(phi.values())) != len(self.elements):
+                continue
+            ok = True
+            for x in self.elements:
+                for y in self.elements:
+                    if phi[self.multiply(x,y)] != self.multiply(phi[x], phi[y]):
+                        ok = False
+                        break
+                if not ok:
+                    break
+            if not ok:
+                continue
+                        
+            if phi not in autos:
+                autos.append(phi)
+                reps.append((img_r, img_s))
+        
+        return autos, reps
+
+
+D=DiherdralGroup(n=5)
+autos, reps = D.compute_aut_group()
+
 print(len(autos))
 print(reps)
